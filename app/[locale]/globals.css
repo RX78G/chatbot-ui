@@ -30,7 +30,8 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Screen background color set to yellow */
+    --background: 60 100% 50%;
     --foreground: 0 0% 3.9%;
 
     --muted: 0 0% 96.1%;
@@ -63,7 +64,7 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 60 100% 50%;
     --foreground: 0 0% 98%;
 
     --muted: 0 0% 14.9%;

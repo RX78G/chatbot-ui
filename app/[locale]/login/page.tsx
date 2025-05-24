@@ -162,7 +162,7 @@ export default async function Login({
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col justify-center gap-2 px-8 sm:max-w-md">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center gap-2 bg-white px-8 sm:max-w-md">
       <form
         className="animate-in text-foreground flex w-full flex-1 flex-col justify-center gap-2"
         action={signIn}

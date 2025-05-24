@@ -30,7 +30,8 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Set a purple background for the default theme */
+    --background: 270 100% 95%;
     --foreground: 0 0% 3.9%;
 
     --muted: 0 0% 96.1%;
@@ -63,7 +64,8 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    /* Set a purple background for dark mode */
+    --background: 270 40% 20%;
     --foreground: 0 0% 98%;
 
     --muted: 0 0% 14.9%;

@@ -25,6 +25,7 @@ module.exports = withBundleAnalyzer(
         }
       ]
     },
+    productionBrowserSourceMaps: true, // ← この行を追記しました
     experimental: {
       serverComponentsExternalPackages: ["sharp", "onnxruntime-node"]
     }

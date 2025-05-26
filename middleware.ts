@@ -1,46 +1,34 @@
-import { createClient } from "@/lib/supabase/middleware"
-import { i18nRouter } from "next-i18n-router"
-import { NextResponse, type NextRequest } from "next/server"
-import i18nConfig from "./i18nConfig"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  const i18nResult = i18nRouter(request, i18nConfig)
-  if (i18nResult) return i18nResult
+/**
+ * When NEXT_PUBLIC_AUTH_DISABLED === 'true',
+ * send every request to /default/chat
+ * (except _next, api, static assets, and the chat page itself).
+ */
+export function middleware(req: NextRequest) {
+  if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
+    const { pathname } = req.nextUrl
 
-  try {
-    const { supabase, response } = createClient(request)
-
-    const session = await supabase.auth.getSession()
-
-    const redirectToChat = session && request.nextUrl.pathname === "/"
-
-    if (redirectToChat) {
-      const { data: homeWorkspace, error } = await supabase
-        .from("workspaces")
-        .select("*")
-        .eq("user_id", session.data.session?.user.id)
-        .eq("is_home", true)
-        .single()
-
-      if (!homeWorkspace) {
-        throw new Error(error?.message)
-      }
-
-      return NextResponse.redirect(
-        new URL(`/${homeWorkspace.id}/chat`, request.url)
-      )
+    // allow framework assets / API / existing chat page
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api") ||
+      pathname.includes(".") ||
+      pathname.startsWith("/default/chat")
+    ) {
+      return NextResponse.next()
     }
 
-    return response
-  } catch (e) {
-    return NextResponse.next({
-      request: {
-        headers: request.headers
-      }
-    })
+    const url = req.nextUrl.clone()
+    url.pathname = "/default/chat"
+    return NextResponse.redirect(url)
   }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: "/((?!api|static|.*\\..*|_next|auth).*)"
+  // run on every route except _next/* and assets already filtered above
+  matcher: ["/((?!_next|api|.*\\.).*)"]
 }

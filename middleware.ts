@@ -1,76 +1,57 @@
-// middleware.ts  (追加分だけ抜粋)
-/* ここを最上部に追記  ----------------------- */
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  // ----- 静的ファイルと manifest は素通り -----
-  if (
-    request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname === '/manifest.json'
-  ) {
-    return NextResponse.next();
-  }
-
-  // ↓ここから先が元々あった認証チェックなど
-  // ...
-}
-/* ------------------------------------------ */
-
-/* matcher も API だけに限定すると安全 */
-export const config = {
-  matcher: ['/api/:path*'],
-};
-
-
-
-
-
-
-
 import { createClient } from "@/lib/supabase/middleware"
 import { i18nRouter } from "next-i18n-router"
 import { NextResponse, type NextRequest } from "next/server"
 import i18nConfig from "./i18nConfig"
 
+/** 静的ファイルと manifest は無条件で素通りさせる */
+function shouldBypass(request: NextRequest) {
+  return (
+    request.nextUrl.pathname.startsWith("/_next") ||
+    request.nextUrl.pathname === "/manifest.json"
+  )
+}
+
 export async function middleware(request: NextRequest) {
+  /* 1. 静的ファイル / manifest.json は即通過 */
+  if (shouldBypass(request)) {
+    return NextResponse.next()
+  }
+
+  /* 2. i18n ルーティング */
   const i18nResult = i18nRouter(request, i18nConfig)
   if (i18nResult) return i18nResult
 
+  /* 3. 認証チェック（不要なら try{} 全体を削除しても可） */
   try {
     const { supabase, response } = createClient(request)
+    const { data: sessionData } = await supabase.auth.getSession()
 
-    const session = await supabase.auth.getSession()
+    const isHome = sessionData && request.nextUrl.pathname === "/"
 
-    const redirectToChat = session && request.nextUrl.pathname === "/"
-
-    if (redirectToChat) {
-      const { data: homeWorkspace, error } = await supabase
+    if (isHome) {
+      const { data: homeWorkspace } = await supabase
         .from("workspaces")
         .select("*")
-        .eq("user_id", session.data.session?.user.id)
+        .eq("user_id", sessionData.session?.user.id)
         .eq("is_home", true)
         .single()
 
-      if (!homeWorkspace) {
-        throw new Error(error?.message)
+      if (homeWorkspace) {
+        return NextResponse.redirect(
+          new URL(`/${homeWorkspace.id}/chat`, request.url)
+        )
       }
-
-      return NextResponse.redirect(
-        new URL(`/${homeWorkspace.id}/chat`, request.url)
-      )
     }
-
     return response
-  } catch (e) {
+  } catch {
+    /* 認証まわりで失敗してもページは描画させる */
     return NextResponse.next({
-      request: {
-        headers: request.headers
-      }
+      request: { headers: request.headers }
     })
   }
 }
 
+/** API だけを対象にする（静的アセット／manifest は除外） */
 export const config = {
-  matcher: "/((?!api|static|.*\\..*|_next|auth).*)"
+  matcher: ["/api/:path*"]
 }
